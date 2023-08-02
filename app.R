@@ -12,6 +12,9 @@ ui <- fluidPage(
   shinyFeedback::useShinyFeedback(),
   shinyjs::useShinyjs(),
   #shinyalert::useShinyalert(),
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
+  ),
 
   titlePanel("Upload photo for calendar"),
 
@@ -35,7 +38,10 @@ ui <- fluidPage(
             fluidRow(
               column(
                 width = 10, offset = 1,
-                actionButton(inputId = "Go", "I've filled in the information and am ready to submit")
+                actionButton(
+                  inputId = "Go", 
+                  HTML("I've filled in the information <br/> and am ready to submit")
+                )
               )
             )
           ),
@@ -49,8 +55,8 @@ ui <- fluidPage(
               )
             )
           )
-      )
-         #actionButton("browser", "browser"),
+      ),
+         actionButton("browser", "browser"),
     )
   )
 )
@@ -71,7 +77,7 @@ server <- function(input, output, session) {
           shinyFeedback::feedbackSuccess(
             inputId = "file_upload",
             show = TRUE,
-            text = "Happy with the file type"
+            text = "Compatible file type"
             
           )
         } else {
@@ -86,6 +92,12 @@ server <- function(input, output, session) {
           )
         }
       }
+      
+      if(nchar(input$name1) > 1) {
+        shinyFeedback::hideFeedback("name1")
+      }
+      
+      
     })
   
     observeEvent(input$Go, {
