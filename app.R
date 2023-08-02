@@ -5,6 +5,8 @@ danger_colour <- "yellow"
 warning_colour <- "#9fd463"
 options(shiny.maxRequestSize = 10 *1024^2)
 
+#test 
+
 # https://github.com/karthik/rdrop2/issues/180
 
 ui <- fluidPage(
