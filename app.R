@@ -1,13 +1,17 @@
 library(shiny)
 library(rdrop2)
 
-danger_colour <- "yellow"
+danger_colour <- "#D62828"
 warning_colour <- "#9fd463"
 options(shiny.maxRequestSize = 10 *1024^2)
 
 # https://github.com/karthik/rdrop2/issues/180
 
 ui <- fluidPage(
+  
+  shinyFeedback::useShinyFeedback(),
+  shinyjs::useShinyjs(),
+  #shinyalert::useShinyalert(),
 
   titlePanel("Upload photo for calendar"),
 
@@ -17,25 +21,72 @@ ui <- fluidPage(
         textInput(inputId = "name2", label = "Enter surname"),
         textInput(inputId = "email", label = "email address"),
         textInput(inputId = "dog", label = "dog name??"),
-        fileInput(inputId = "file_upload", label = "choose photo"),
-        actionButton(inputId = "Go", "Go")
+        fileInput(inputId = "file_upload", label = "choose photo")
+        
       ),
-
       mainPanel(
-         textOutput("msg"),
-         actionButton("browser", "browser")
+        
+        tabsetPanel(
+          id="main_panel",
+          type="hidden",
+          tabPanelBody(
+            "load_button",
+            br(), br(),
+            fluidRow(
+              column(
+                width = 10, offset = 1,
+                actionButton(inputId = "Go", "I've filled in the information and am ready to submit")
+              )
+            )
+          ),
+          tabPanelBody(
+            "confirm_panel",
+            br(), br(),
+            fluidRow(
+              column(
+                width = 8, offset = 2,
+                textOutput("msg"),
+              )
+            )
+          )
       )
+         #actionButton("browser", "browser"),
+    )
   )
 )
 
 
 # disable Go button until all fields have been completed
 
-server <- function(input, output) {
+server <- function(input, output, session) {
 
     observeEvent(input$browser, browser())
-  
-    shinyjs::disable(id = "Go")
+
+    observe({
+      
+      if(isTruthy(input$file_upload)){
+        shinyFeedback::hideFeedback("file_upload")
+        
+        if(tools::file_ext(input$file_upload$datapath) %in% c("png", "jpg", "jpeg")){
+          shinyFeedback::feedbackSuccess(
+            inputId = "file_upload",
+            show = TRUE,
+            text = "Happy with the file type"
+            
+          )
+        } else {
+          shinyFeedback::feedbackDanger(
+            inputId = "file_upload",
+            show = !tools::file_ext(input$file_upload$datapath) %in% c("png", "jpg", "jpeg"),
+            text = paste0(
+              "File type must be one of png or jpg, file type specified was ",
+              tools::file_ext(input$file_upload$datapath)
+            ),
+            color = danger_colour
+          )
+        }
+      }
+    })
   
     observeEvent(input$Go, {
       
@@ -44,7 +95,7 @@ server <- function(input, output) {
         shinyFeedback::hideFeedback("name1")
       } else {
         shinyFeedback::feedbackDanger(
-          inputId = "Go",
+          inputId = "name1",
           show = nchar(input$name1) <= 1,
           text = "Please enter your name",
           color = danger_colour
@@ -60,30 +111,10 @@ server <- function(input, output) {
           color = danger_colour
         )
       } 
-      
+    
       req(nchar(input$name1) > 1)
       req(isTruthy(input$file_upload))
-      
-      # observe({
-      # 
-      #   if(tools::file_ext(input$file_upload$datapath) %in% c("png", "jpg")){
-      #     shinyFeedback::feedbackSuccess(
-      #       inputId = "metadata_filepath",
-      #       show = TRUE,
-      #       text = "Happy with the file type"
-      #     )
-      #   } else {
-      #     shinyFeedback::feedbackDanger(
-      #       inputId = "metadata_filepath",
-      #       show = !tools::file_ext(input$metadata_filepath$datapath) %in% c("tsv", "txt", "csv"),
-      #       text = paste0(
-      #         "Metadata file type must be one of tsv, txt or csv, file type specified was ",
-      #         tools::file_ext(input$metadata_filepath$datapath)
-      #       ),
-      #       color = danger_colour
-      #     )
-      #   }
-      # })
+      req(tools::file_ext(input$file_upload$datapath) %in% c("png", "jpg", "jpeg"))
       
       drop_auth(rdstoken = "droptoken.rds")
       
@@ -122,10 +153,15 @@ server <- function(input, output) {
       cat(line, file = "records.csv", append = TRUE)
       drop_upload("records.csv") 
       
+      msg_text("Thank you, please look out for an email over the next couple of days to confirm that we've received your photo.")
+      
+      updateTabsetPanel(session, "main_panel", selected = "confirm_panel")
     })
   
+    msg_text <- reactiveVal("")
+    
     output$msg <- renderText({
-        "We'll try uploading the pic, it'll take a little while but please be patient...dancing dog."
+        msg_text()
     })
 }
 
