@@ -6,8 +6,11 @@ library(shinyjs)
 danger_colour <- "#D62828"
 warning_colour <- "#9fd463"
 options(shiny.maxRequestSize = 10 *1024^2)
-accepted_filetypes <- c("png", "jpg", "jpeg", "PNG", "JPG", "JPEG")
-
+accepted_filetypes <- c("png", "jpg", "jpeg", "PNG", "JPG", "JPEG", "Png", "Jpg", "Jpeg",)
+token <- readRDS("droptoken.rds")
+new_token <- token$refresh()
+saveRDS(new_token, "droptoken.rds")
+  
 # https://github.com/karthik/rdrop2/issues/180
 
 ui <- fluidPage(
@@ -57,8 +60,9 @@ ui <- fluidPage(
               )
             )
           )
-      ),
-         actionButton("browser", "browser"),
+      )#,
+      #actionButton("browser", "browser"),
+      #actionButton("sleep", "sleep"),
     )
   )
 )
@@ -70,6 +74,8 @@ server <- function(input, output, session) {
 
     observeEvent(input$browser, browser())
 
+    observeEvent(input$sleep, Sys.sleep(10))
+  
     observe({
       
       # highlight input boxes if file type isn't right
@@ -129,6 +135,10 @@ server <- function(input, output, session) {
       req(nchar(input$name1) > 1)
       req(isTruthy(input$file_upload))
       req(tools::file_ext(input$file_upload$datapath) %in% accepted_filetypes)
+      
+      msg_text("Thank you, we're trying to upload your photo.")
+      
+      #Sys.sleep(10)
       
       drop_auth(rdstoken = "droptoken.rds")
       
