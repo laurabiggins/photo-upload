@@ -12,20 +12,15 @@ saveData <- function(data) {
   drop_upload(filePath, path = outputDir)
 }
 
-#drop_auth(new_user = TRUE) # this pops up in a browser asking for authentication - not quite sure how this works on a server - will need to try it.
+#drop_auth(new_user = TRUE) # this pops up in a browser asking for authentication - we need to save this as an rds object to use on the server
+#
 
-# write.csv(mtcars, 'mtcars2.csv')
-# #drop_upload('mtcars.csv')
-# # or upload to a specific folder
-# drop_upload('mtcars2.csv', path = "test_uploads")
-# 
-# name1 <- "Polly"
-# name2 <- "Rocket"
-# email <- "polrock@email.org"
-# picname <- "dogpic1"
-# 
-# line <- paste(name1, name2, email, picname, sep = ",")
-# cat(line, file = "records.csv", append = TRUE)
-# drop_upload("records.csv")
+#token <- drop_auth(new_user = TRUE)
+# then because dropbox have stopped using long-lived tokens, we need to use a workaround
+# https://github.com/karthik/rdrop2/issues/201
+# After calling drop_auth() in R, in the pop-up webpage, I added "&token_access_type=offline" to the end of the URL, then hit enter to refresh the page, then authorize as usual. In this way, there should be "a long-lived refresh_token that can be used to request a new, short-lived access token" generated to your app folder. Then I published the app as usual, my authorization problem was solved.
+#saveRDS(token, "droptoken.rds")
+#&token_access_type=offline
+
 
 
