@@ -6,7 +6,7 @@ library(shinyjs)
 danger_colour <- "#D62828"
 warning_colour <- "#9fd463"
 options(shiny.maxRequestSize = 10 *1024^2)
-accepted_filetypes <- c("png", "jpg", "jpeg", "PNG", "JPG", "JPEG", "Png", "Jpg", "Jpeg",)
+accepted_filetypes <- c("png", "jpg", "jpeg", "PNG", "JPG", "JPEG", "Png", "Jpg", "Jpeg")
 token <- readRDS("droptoken.rds")
 new_token <- token$refresh()
 saveRDS(new_token, "droptoken.rds")
