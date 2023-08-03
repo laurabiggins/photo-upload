@@ -1,9 +1,12 @@
 library(shiny)
 library(rdrop2)
+library(shinyFeedback)
+library(shinyjs)
 
 danger_colour <- "#D62828"
 warning_colour <- "#9fd463"
 options(shiny.maxRequestSize = 10 *1024^2)
+accepted_filetypes <- c("png", "jpg", "jpeg", "PNG", "JPG", "JPEG")
 
 # https://github.com/karthik/rdrop2/issues/180
 
@@ -11,7 +14,6 @@ ui <- fluidPage(
   
   shinyFeedback::useShinyFeedback(),
   shinyjs::useShinyjs(),
-  #shinyalert::useShinyalert(),
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
   ),
@@ -70,10 +72,11 @@ server <- function(input, output, session) {
 
     observe({
       
+      # highlight input boxes if file type isn't right
       if(isTruthy(input$file_upload)){
         shinyFeedback::hideFeedback("file_upload")
         
-        if(tools::file_ext(input$file_upload$datapath) %in% c("png", "jpg", "jpeg")){
+        if(tools::file_ext(input$file_upload$datapath) %in% accepted_filetypes){
           shinyFeedback::feedbackSuccess(
             inputId = "file_upload",
             show = TRUE,
@@ -83,7 +86,7 @@ server <- function(input, output, session) {
         } else {
           shinyFeedback::feedbackDanger(
             inputId = "file_upload",
-            show = !tools::file_ext(input$file_upload$datapath) %in% c("png", "jpg", "jpeg"),
+            show = !tools::file_ext(input$file_upload$datapath) %in% accepted_filetypes,
             text = paste0(
               "File type must be one of png or jpg, file type specified was ",
               tools::file_ext(input$file_upload$datapath)
@@ -114,7 +117,6 @@ server <- function(input, output, session) {
         )
       }
       
-      ## dataset ----
       if(!isTruthy(input$file_upload)){
         shinyFeedback::feedbackDanger(
           inputId = "file_upload",
@@ -126,12 +128,11 @@ server <- function(input, output, session) {
     
       req(nchar(input$name1) > 1)
       req(isTruthy(input$file_upload))
-      req(tools::file_ext(input$file_upload$datapath) %in% c("png", "jpg", "jpeg"))
+      req(tools::file_ext(input$file_upload$datapath) %in% accepted_filetypes)
       
       drop_auth(rdstoken = "droptoken.rds")
       
-      current_records <- drop_read_csv(file="records.csv")
-      
+      #current_records <- drop_read_csv(file="records.csv")
      # as_tibble(current_records)
       
       fileName <- sprintf("%s_%s_%s.png", input$name1, input$name2, input$dog)
@@ -147,7 +148,6 @@ server <- function(input, output, session) {
        drop_upload(filePath, path = "test_uploads")
       # =========================
       
-      
       # this works and uploads directly but I can't control the file name - it's 0.png, 
       # then 0 (1).png, 0(2).png etc. not great, so I think we'll have to upload to the 
       # server then upload to dropbox. Not ideal.
@@ -159,8 +159,7 @@ server <- function(input, output, session) {
       #drop_upload(input$file_upload$datapath, mode="add", verbose = TRUE, path = path_upload)
       
       
-      # validation checks
-      # 
+      # add contact info to records file
       line <- paste(paste(input$name1, input$name2, input$email, input$dog, sep = ","), "\n")
       cat(line, file = "records.csv", append = TRUE)
       drop_upload("records.csv") 
