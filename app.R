@@ -3,6 +3,9 @@ library(rdrop2)
 library(shinyFeedback)
 library(shinyjs)
 library(shinyvalidate)
+library(promises)
+library(future)
+plan(multisession)
 
 # js message when button has been pressed and waiting for upload
 
@@ -25,6 +28,7 @@ ui <- fluidPage(
   ),
 
   titlePanel("Upload photo for calendar"),
+  h4("The photo can be up to 5Mb in size, any more instructions here?"),
 
   sidebarLayout(
       sidebarPanel(
@@ -65,8 +69,7 @@ ui <- fluidPage(
             )
           )
       )#,
-      #actionButton("browser", "browser"),
-      #actionButton("sleep", "sleep"),
+     # actionButton("browser", "browser"),
     )
   )
 )
@@ -75,8 +78,6 @@ server <- function(input, output, session) {
 
     observeEvent(input$browser, browser())
 
-    observeEvent(input$sleep, Sys.sleep(10))
-  
     iv <- InputValidator$new()
     
     # Add validation rules
@@ -112,10 +113,20 @@ server <- function(input, output, session) {
           )
         }
       }
-      
     })
   
     observeEvent(input$Go, {
+      
+      disable(id= "Go")
+      
+      shinyalert::shinyalert(
+        paste0(
+          "Thank you, just running some checks..."
+        ),
+        closeOnClickOutside = TRUE,
+        #imageUrl = "http://143.110.172.117/images/pup.jpg",
+        className = "shinyalertmodal"
+      )
       
       if(!isTruthy(input$file_upload)){
         shinyFeedback::feedbackDanger(
@@ -124,6 +135,7 @@ server <- function(input, output, session) {
           text = "Please select a data file.",
           color = danger_colour
         )
+        enable(id= "Go")
       }
     
       if(iv$is_valid()){
@@ -133,45 +145,52 @@ server <- function(input, output, session) {
         
         shinyalert::shinyalert(
           paste0(
-            "Thank you, we'll try uploading the file, it may take a few minutes so bear with us."
+            "We'll try uploading the file, \n it may take a few minutes so bear with us."
           ),
-          type = "info",
           closeOnClickOutside = TRUE,
           className = "shinyalertmodal"
         )
-  
-        #Sys.sleep(10)
         
-        drop_auth(rdstoken = "droptoken.rds")
-  
-        fileName <- sprintf("%s_%s_%s.png", input$dog, input$name2)
-        
-        # In order to create a custom name for the file, it needs to be saved locally and then uploaded to dropbox.
-        # Write the data to a temporary file locally
+        fileName <- sprintf("%s_%s.png", input$dog, input$name2)
         filePath <- file.path(tempdir(), fileName)
-        file.copy(input$file_upload$datapath, filePath)
+        user_datapath <- input$file_upload$datapath
+        contact_info <- paste(paste(input$name1, input$name2, input$facebook_name, input$email, input$dog, sep = ","), "\n")
         
-        # Upload the file to Dropbox
-         drop_upload(filePath, path = "test_uploads")
-  
-        # add contact info to records file
-        line <- paste(paste(input$name1, input$name2, input$email, input$dog, sep = ","), "\n")
-        cat(line, file = "records.csv", append = TRUE) # I'm not sure how this will work if 2 sessions are run simultaneously
-        drop_upload("records.csv") 
+        future_promise({
         
-        msg_text("Thank you, please look out for an email over the next 
-                 couple of days to confirm that we've received your photo.")
+          drop_auth(rdstoken = "droptoken.rds")
+          
+          # In order to create a custom name for the file, it needs to be saved 
+          # locally and then uploaded to dropbox.
+          # Write the data to a temporary file locally
+          file.copy(user_datapath, filePath)
+          
+          # Upload the file to Dropbox
+           drop_upload(filePath, path = "photo_uploads")
+           
+           dropbox_records <- drop_read_csv(file = "records.csv")
+           # add contact info to records file
+           cat(contact_info, file = "records.csv", append = TRUE) # I'm not sure how this will work if 2 sessions are run simultaneously
+           cat(contact_info, file = "../records.csv", append = TRUE)
+           drop_upload("records.csv") 
+
+           "Thank you, please look out for an email over the next couple of days to confirm that we've received your photo."
+           
+        }) %...>%
+          msg_text()
         
         updateTabsetPanel(session, "main_panel", selected = "confirm_panel")
+        
       } else {
         
         iv$enable()
         showNotification(
           "Please correct the errors in the form and try again",
           id = "submit_message", type = "error")
+        enable(id= "Go")
       }
     })
-  
+    
     msg_text <- reactiveVal("")
     
     output$msg <- renderText({
