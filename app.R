@@ -69,8 +69,7 @@ ui <- fluidPage(
             )
           )
       )#,
-      #actionButton("browser", "browser"),
-      #actionButton("sleep", "sleep"),
+     # actionButton("browser", "browser"),
     )
   )
 )
@@ -79,8 +78,6 @@ server <- function(input, output, session) {
 
     observeEvent(input$browser, browser())
 
-    observeEvent(input$sleep, Sys.sleep(10))
-  
     iv <- InputValidator$new()
     
     # Add validation rules
@@ -116,10 +113,20 @@ server <- function(input, output, session) {
           )
         }
       }
-      
     })
   
     observeEvent(input$Go, {
+      
+      disable(id= "Go")
+      
+      shinyalert::shinyalert(
+        paste0(
+          "Thank you, just running some checks..."
+        ),
+        closeOnClickOutside = TRUE,
+        #imageUrl = "http://143.110.172.117/images/pup.jpg",
+        className = "shinyalertmodal"
+      )
       
       if(!isTruthy(input$file_upload)){
         shinyFeedback::feedbackDanger(
@@ -128,21 +135,19 @@ server <- function(input, output, session) {
           text = "Please select a data file.",
           color = danger_colour
         )
+        enable(id= "Go")
       }
     
       if(iv$is_valid()){
-        
-        disable(id= "Go")
         
         req(isTruthy(input$file_upload))
         req(tools::file_ext(input$file_upload$datapath) %in% accepted_filetypes)
         
         shinyalert::shinyalert(
           paste0(
-            "Thank you, we'll try uploading the file, it may take a few minutes so bear with us. \n
-            Please wait for a confirmation message before closing the page."
+            "Thank you, we'll try uploading the file, \n it may take a few minutes so bear with us."
           ),
-          type = "info",
+          imageUrl = "images/pup1.jpg",
           closeOnClickOutside = TRUE,
           className = "shinyalertmodal"
         )
@@ -170,8 +175,6 @@ server <- function(input, output, session) {
            cat(contact_info, file = "../records.csv", append = TRUE)
            drop_upload("records.csv") 
 
-           Sys.sleep(10)
-           
            "Thank you, please look out for an email over the next couple of days to confirm that we've received your photo."
            
         }) %...>%
@@ -185,6 +188,7 @@ server <- function(input, output, session) {
         showNotification(
           "Please correct the errors in the form and try again",
           id = "submit_message", type = "error")
+        enable(id= "Go")
       }
     })
     
