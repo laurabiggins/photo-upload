@@ -144,7 +144,7 @@ server <- function(input, output, session) {
         
         drop_auth(rdstoken = "droptoken.rds")
   
-        fileName <- sprintf("%s_%s_%s.png", input$name1, input$name2, input$dog)
+        fileName <- sprintf("%s_%s_%s.png", input$dog, input$name2)
         
         # In order to create a custom name for the file, it needs to be saved locally and then uploaded to dropbox.
         # Write the data to a temporary file locally
