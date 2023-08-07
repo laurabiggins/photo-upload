@@ -2,6 +2,9 @@ library(shiny)
 library(rdrop2)
 library(shinyFeedback)
 library(shinyjs)
+library(shinyvalidate)
+
+# js message when button has been pressed and waiting for upload
 
 danger_colour <- "#D62828"
 warning_colour <- "#9fd463"
@@ -25,11 +28,12 @@ ui <- fluidPage(
 
   sidebarLayout(
       sidebarPanel(
-        textInput(inputId = "name1", label = "Enter first name"),
-        textInput(inputId = "name2", label = "Enter surname"),
-        textInput(inputId = "email", label = "email address"),
-        textInput(inputId = "dog", label = "dog name??"),
-        fileInput(inputId = "file_upload", label = "choose photo")
+        textInput(inputId = "name1", label = "First name"),
+        textInput(inputId = "name2", label = "Surname"),
+        textInput(inputId = "facebook_name", label = "Facebook name"),
+        textInput(inputId = "email", label = "Email address"),
+        textInput(inputId = "dog", label = "Dog name"),
+        fileInput(inputId = "file_upload", label = "Choose photo")
         
       ),
       mainPanel(
@@ -67,15 +71,22 @@ ui <- fluidPage(
   )
 )
 
-
-# disable Go button until all fields have been completed
-
 server <- function(input, output, session) {
 
     observeEvent(input$browser, browser())
 
     observeEvent(input$sleep, Sys.sleep(10))
   
+    iv <- InputValidator$new()
+    
+    # Add validation rules
+    iv$add_rule("name1", sv_required())
+    iv$add_rule("name2", sv_required())
+    iv$add_rule("facebook_name", sv_required())
+    iv$add_rule("email", sv_required())
+    iv$add_rule("email", sv_email())
+    iv$add_rule("dog", sv_required())
+    
     observe({
       
       # highlight input boxes if file type isn't right
@@ -102,26 +113,9 @@ server <- function(input, output, session) {
         }
       }
       
-      if(nchar(input$name1) > 1) {
-        shinyFeedback::hideFeedback("name1")
-      }
-      
-      
     })
   
     observeEvent(input$Go, {
-      
-      if(nchar(input$name1) > 1) {
-        
-        shinyFeedback::hideFeedback("name1")
-      } else {
-        shinyFeedback::feedbackDanger(
-          inputId = "name1",
-          show = nchar(input$name1) <= 1,
-          text = "Please enter your name",
-          color = danger_colour
-        )
-      }
       
       if(!isTruthy(input$file_upload)){
         shinyFeedback::feedbackDanger(
@@ -130,53 +124,52 @@ server <- function(input, output, session) {
           text = "Please select a data file.",
           color = danger_colour
         )
-      } 
+      }
     
-      req(nchar(input$name1) > 1)
-      req(isTruthy(input$file_upload))
-      req(tools::file_ext(input$file_upload$datapath) %in% accepted_filetypes)
-      
-      msg_text("Thank you, we're trying to upload your photo.")
-      
-      #Sys.sleep(10)
-      
-      drop_auth(rdstoken = "droptoken.rds")
-      
-      #current_records <- drop_read_csv(file="records.csv")
-     # as_tibble(current_records)
-      
-      fileName <- sprintf("%s_%s_%s.png", input$name1, input$name2, input$dog)
-      # Write the data to a temporary file locally
-      
-      # ==================#
-      # this worked
-       filePath <- file.path(tempdir(), fileName)
-      # 
-       file.copy(input$file_upload$datapath, filePath)
-      # 
-      # # Upload the file to Dropbox
-       drop_upload(filePath, path = "test_uploads")
-      # =========================
-      
-      # this works and uploads directly but I can't control the file name - it's 0.png, 
-      # then 0 (1).png, 0(2).png etc. not great, so I think we'll have to upload to the 
-      # server then upload to dropbox. Not ideal.
-      # But I guess it could go into a folder with the name
-      #x <- drop_upload(input$file_upload$datapath, mode="add", verbose = TRUE, path = "test_uploads")
-      
-      # this also works
-      #path_upload <- paste0("test_uploads/", fileName)
-      #drop_upload(input$file_upload$datapath, mode="add", verbose = TRUE, path = path_upload)
-      
-      
-      # add contact info to records file
-      line <- paste(paste(input$name1, input$name2, input$email, input$dog, sep = ","), "\n")
-      cat(line, file = "records.csv", append = TRUE)
-      drop_upload("records.csv") 
-      
-      msg_text("Thank you, please look out for an email over the next couple of days to confirm that we've received your photo.")
-      
-      updateTabsetPanel(session, "main_panel", selected = "confirm_panel")
+      if(iv$is_valid()){
+        
+        req(isTruthy(input$file_upload))
+        req(tools::file_ext(input$file_upload$datapath) %in% accepted_filetypes)
+        
+        shinyalert::shinyalert(
+          paste0(
+            "Thank you, we'll try uploading the file, it may take a few minutes so bear with us."
+          ),
+          type = "info",
+          closeOnClickOutside = TRUE,
+          className = "shinyalertmodal"
+        )
+  
+        #Sys.sleep(10)
+        
+        drop_auth(rdstoken = "droptoken.rds")
+  
+        fileName <- sprintf("%s_%s_%s.png", input$name1, input$name2, input$dog)
+        
+        # In order to create a custom name for the file, it needs to be saved locally and then uploaded to dropbox.
+        # Write the data to a temporary file locally
+        filePath <- file.path(tempdir(), fileName)
+        file.copy(input$file_upload$datapath, filePath)
+        
+        # Upload the file to Dropbox
+         drop_upload(filePath, path = "test_uploads")
+  
+        # add contact info to records file
+        line <- paste(paste(input$name1, input$name2, input$email, input$dog, sep = ","), "\n")
+        cat(line, file = "records.csv", append = TRUE) # I'm not sure how this will work if 2 sessions are run simultaneously
+        drop_upload("records.csv") 
+        
+        msg_text("Thank you, please look out for an email over the next 
+                 couple of days to confirm that we've received your photo.")
+        
+        updateTabsetPanel(session, "main_panel", selected = "confirm_panel")
+      } else {
+        
+        iv$enable()
+        showNotification(
+          "Please correct the errors in the form and try again",
+          id = "submit_message", type = "error")
+      }
     })
   
     msg_text <- reactiveVal("")
