@@ -28,6 +28,7 @@ ui <- fluidPage(
   ),
 
   titlePanel("Upload photo for calendar"),
+  h4("The photo can be up to 5Mb in size"),
 
   sidebarLayout(
       sidebarPanel(
@@ -130,6 +131,8 @@ server <- function(input, output, session) {
       }
     
       if(iv$is_valid()){
+        
+        shinyjs::disable(id = "Go")
         
         req(isTruthy(input$file_upload))
         req(tools::file_ext(input$file_upload$datapath) %in% accepted_filetypes)
