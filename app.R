@@ -28,7 +28,7 @@ ui <- fluidPage(
   ),
 
   titlePanel("Upload photo for calendar"),
-  h4("The photo can be up to 5Mb in size"),
+  h4("The photo can be up to 5Mb in size, any more instructions here?"),
 
   sidebarLayout(
       sidebarPanel(
@@ -132,26 +132,25 @@ server <- function(input, output, session) {
     
       if(iv$is_valid()){
         
-        shinyjs::disable(id = "Go")
+        disable(id= "Go")
         
         req(isTruthy(input$file_upload))
         req(tools::file_ext(input$file_upload$datapath) %in% accepted_filetypes)
         
         shinyalert::shinyalert(
           paste0(
-            "Thank you, we'll try uploading the file, it may take a few minutes so bear with us."
+            "Thank you, we'll try uploading the file, it may take a few minutes so bear with us. \n
+            Please wait for a confirmation message before closing the page."
           ),
           type = "info",
           closeOnClickOutside = TRUE,
           className = "shinyalertmodal"
         )
-  
-        #Sys.sleep(10)
         
         fileName <- sprintf("%s_%s.png", input$dog, input$name2)
         filePath <- file.path(tempdir(), fileName)
         user_datapath <- input$file_upload$datapath
-        contact_info <- paste(paste(input$name1, input$name2, input$email, input$dog, sep = ","), "\n")
+        contact_info <- paste(paste(input$name1, input$name2, input$facebook_name, input$email, input$dog, sep = ","), "\n")
         
         future_promise({
         
@@ -165,10 +164,12 @@ server <- function(input, output, session) {
           # Upload the file to Dropbox
            drop_upload(filePath, path = "test_uploads")
            
+           dropbox_records <- drop_read_csv(file = "records.csv")
            # add contact info to records file
            cat(contact_info, file = "records.csv", append = TRUE) # I'm not sure how this will work if 2 sessions are run simultaneously
+           cat(contact_info, file = "../records.csv", append = TRUE)
            drop_upload("records.csv") 
-           
+
            Sys.sleep(10)
            
            "Thank you, please look out for an email over the next couple of days to confirm that we've received your photo."
@@ -186,8 +187,6 @@ server <- function(input, output, session) {
           id = "submit_message", type = "error")
       }
     })
-  
-    uploaded_reactive <- 
     
     msg_text <- reactiveVal("")
     
