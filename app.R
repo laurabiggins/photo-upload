@@ -145,9 +145,8 @@ server <- function(input, output, session) {
         
         shinyalert::shinyalert(
           paste0(
-            "Thank you, we'll try uploading the file, \n it may take a few minutes so bear with us."
+            "We'll try uploading the file, \n it may take a few minutes so bear with us."
           ),
-          imageUrl = "images/pup1.jpg",
           closeOnClickOutside = TRUE,
           className = "shinyalertmodal"
         )
@@ -167,7 +166,7 @@ server <- function(input, output, session) {
           file.copy(user_datapath, filePath)
           
           # Upload the file to Dropbox
-           drop_upload(filePath, path = "test_uploads")
+           drop_upload(filePath, path = "photo_uploads")
            
            dropbox_records <- drop_read_csv(file = "records.csv")
            # add contact info to records file
