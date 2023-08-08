@@ -1,9 +1,3 @@
----
-editor_options: 
-  markdown: 
-    wrap: 72
----
-
 # Photo-upload
 
 This is a small Shiny app consisting of a form for uploading photos to a
