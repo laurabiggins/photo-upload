@@ -1,2 +1,5 @@
 .httr-oauth
 .Rproj.user
+droptoken.rds
+records.csv
+Readme.html
