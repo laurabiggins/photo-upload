@@ -7,6 +7,10 @@ dropbox account.
 
 The R package rdrop2 has been used to access dropbox.
 
+It's no longer actively maintained - still working for now though by using someone's branch
+for installing rdrop2
+https://github.com/karthik/rdrop2/issues/209 
+
 The authentication is done interactively so needs to be carried out on a
 desktop machine. The token can be saved as an .rds object and then used
 on the server. A pop up appears in a browser asking for authentication -
@@ -45,3 +49,22 @@ Then use `new_token` in the server code.
 To enable manual checking of whether someone's photo has been uploaded,
 the names entered into the form are saved in a records.csv file. This is
 not include in this repository so may need to be created manually.
+
+# Setting up the server
+
+Mostly I followed this blog post - https://deanattali.com/2015/05/09/setup-rstudio-shiny-server-digital-ocean/
+
+but had to make some changes.
+
+I needed some different commands for installing R and setting gpg keys - the info was here:
+https://cran.r-project.org/bin/linux/ubuntu/ 
+
+Also needed these before installing R packages:
+```
+sudo apt-get install make
+sudo apt-get install gcc
+sudo apt-get install g++
+```
+for installing rdrop2
+https://github.com/karthik/rdrop2/issues/209 
+
